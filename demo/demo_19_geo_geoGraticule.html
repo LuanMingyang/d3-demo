@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const svgWidth = 800;
+      const svgHeight = 500;
+
+      const color = d3.interpolateGnBu;
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 创建经纬线网格生成器
+      const graticule = d3.geoGraticule()
+          .extent([[71, 16], [137, 54]]) // 设置网格范围在经度71°~137°，纬度16°~54°
+          .step([5, 5]); // 经度和纬度间隔都为5°
+
+      // 创建投影
+      const projection = d3.geoMercator()
+          .center([107, 31])
+          .scale(600)
+          .translate([svgWidth / 2, svgHeight / 2 + svgHeight / 6]);
+
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection);
+
+      // 绘制网格
+      svg.append('g')
+        .append('path')
+          .datum(graticule()) // 生成并绑定网格数据
+          .attr('d', geoPath)
+          .attr('stroke', 'black');
+
+      // 读取GeoJSON格式数据
+      d3.json('../geo_data/china.geojson').then(data => {
+
+        // 绘制地图
+        svg.append('g')
+          .selectAll('path')
+          .data(data.features)
+          .enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill', () => color(Math.random()));
+
+      }).catch(err => console.error(err));
+      
+    </script>
+  </body>
+</html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Histogram</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+	    // 创建一个服从正态分布的随机数生成函数，期望为180，标准差为10
+      const random = d3.randomNormal(100, 10);
+      const data = Array.from({length: 500}, () => random());
+
+      const svgWidth = 500;
+      const svgHeight = 500;
+
+      const padding = {
+        top: 30,
+        right: 30,
+        bottom: 30,
+        left: 30
+      };
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 绘制坐标轴
+      const gAxis = svg.append('g')
+          .attr('transform', `translate(${padding.left}, ${padding.top})`);
+      const xAxisWidth = svgWidth - padding.left - padding.right;
+      const yAxisHeight = svgHeight - padding.top - padding.bottom;
+      // x轴
+      const xScale = d3.scaleLinear()
+          .domain(d3.extent(data)) // d3.extent 计算数组中的最大值和最小值.
+          .nice()                  // 扩展domain到最接近的整数
+          .range([0, xAxisWidth]);
+      gAxis.append('g')
+          .attr('transform', `translate(0, ${yAxisHeight})`)
+          .call(d3.axisBottom(xScale).tickSizeOuter(0));
+
+        // 创建一个直方图生成器并获取分箱
+      const bins = d3.histogram()
+          .domain(xScale.domain())
+          .thresholds(xScale.ticks(30))
+          (data);
+      // console.log(bins);
+
+      // y轴
+      const yScale = d3.scaleLinear()
+          .domain([0, d3.max(bins, d => d.length)])
+          .nice()
+          .range([yAxisHeight, 0]);
+      gAxis.append('g').call(d3.axisLeft(yScale)).select('.domain').remove();
+
+      // 绘制矩形（用柱状图表示）
+      const gRect = svg.append('g')
+          .attr('transform', `translate(${padding.left}, ${padding.top})`)
+          .attr('fill', 'steelblue');
+      gRect.selectAll('rect')
+        .data(bins)
+        .enter().append('rect')
+          .attr('x', d => xScale(d.x0) + 1) // x0: 当前分箱的最小值(包含)，x1 - 当前分箱的最大值(不包含, 除非是最后一个分箱)
+          .attr('y', d => yScale(d.length))
+          .attr('width', d => Math.max(0, xScale(d.x1) - xScale(d.x0) - 1))
+          .attr('height', d => yScale(0) - yScale(d.length));
+      
+      // 绘制曲线（用曲线表示）
+      // 创建曲线生成器
+      /* const linePath = d3.line()
+          .x(d => xScale(d.x0))
+          .y(d => yScale(d.length))
+          .curve(d3.curveBasis);
+      svg.append('g')
+          .attr('transform', `translate(${padding.left}, ${padding.top})`)
+          .attr('fill', 'none')
+          .attr('stroke-width', 2)
+          .attr('stroke', 'steelblue')
+        .append('path')
+          .attr('d', linePath(bins)); */
+    </script>
+  </body>
+</html>

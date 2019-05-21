@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+  </head>
+  <body>
+    <script>
+      const svgWidth = 800;
+      const svgHeight = 500;
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 创建投影
+      const projection = d3.geoMercator()
+          .center([107, 31])
+          .scale(600)
+          .translate([svgWidth / 2, svgHeight / 2 + svgHeight / 6]);
+      
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection);
+
+      const color = d3.interpolateGnBu;
+
+      // 读取TopoJSON格式数据
+      d3.json('../geo_data/china.topojson').then(topoData => {
+        // 正常绘制
+        drawNormal(topoData);
+
+        // 合并台湾省
+        // drawMerged(topoData);
+
+        // 绘制边界线
+        // drawBoundary(topoData);
+
+        // 查找相邻省份
+        // drawNeighbors(topoData);
+      }).catch(err => console.error(err));
+      
+
+      // 正常绘制
+      function drawNormal(topoData) {
+        const geoData = topojson.feature(topoData, topoData.objects.china);
+        const features = geoData.features;
+
+        svg.append('g')
+          .selectAll('path')
+          .data(features)
+          .enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill', () => color(Math.random()));
+      }
+
+      // 合并台湾省
+      function drawMerged(topoData) {
+        const geoData = topojson.feature(topoData, topoData.objects.china);
+        const features = geoData.features;
+
+        const tw = topojson.merge(topoData, topoData.objects.china.geometries.filter(item => {
+          return item.properties.adm0_a3 === 'TWN';
+        }));
+
+        svg.append('g')
+          .selectAll('path')
+          .data([...features, tw])
+          .enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill', () => color(Math.random()));
+      }
+      
+      // 绘制边界线
+      function drawBoundary(topoData) {
+        const geoData = topojson.feature(topoData, topoData.objects.china);
+        const features = geoData.features;
+
+        // 提取新疆与西藏边界线
+        const boundary = topojson.mesh(topoData, topoData.objects.china, ((a, b) => {
+          return a.properties.name === 'Xinjiang' && b.properties.name === 'Xizang';
+        }));
+
+        svg.append('g')
+          .selectAll('path')
+          .data(features)
+          .enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill', () => color(Math.random()));
+
+        // 绘制边界线
+        svg.append('g')
+          .append('path')
+            .datum(boundary)
+            .attr('d', geoPath)
+            .attr("fill", "none")
+            .attr('stroke', 'white')
+            .attr('stroke-width', 1.5)
+            .attr('stroke-linejoin', 'round');
+      }
+      
+      // 查找相邻省份
+      function drawNeighbors(topoData) {
+        const geoData = topojson.feature(topoData, topoData.objects.china);
+        const features = geoData.features;
+
+        // neighbors[i]保存序号为i的省份的邻省序号
+        const neighbors = topojson.neighbors(topoData.objects.china.geometries);
+
+        const paths = svg.append('g')
+          .selectAll('path')
+          .data(features)
+          .enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill', 'gray');
+
+        paths.each((d, i) => {
+          d.neighbors = d3.selectAll(neighbors[i].map(n => paths._groups[0][n]));
+        })
+          .on('mouseover', function (d) {
+            d3.select(this).attr('fill', 'steelblue');
+            d.neighbors.attr('fill', d3.schemeSet3[3]);
+          })
+          .on('mouseout', function (d) {
+            d3.select(this).attr('fill', 'gray');
+            d.neighbors.attr('fill', 'gray');
+          });
+      }
+    </script>
+  </body>
+</html>

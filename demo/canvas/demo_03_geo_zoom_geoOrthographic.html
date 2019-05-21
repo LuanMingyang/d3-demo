@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <canvas width="800" height="500"></canvas>
+    <script>
+      const canvas = document.querySelector('canvas');
+      const width = canvas.width;
+      const height = canvas.height;
+      const ctx = canvas.getContext('2d');
+
+      // 颜色
+      const colorScale = d3.scaleLinear()
+          .domain([0, 1])
+          .range([0.5, 1]);
+      const color = value => d3.interpolatePuBu(colorScale(value));
+
+      // 创建经纬线网格生成器
+      const graticule = d3.geoGraticule()
+          .extent([[-180, -90], [180, 90]])
+          .step([10, 10]);
+
+      // 创建投影
+      const projection = d3.geoOrthographic()
+          .scale(200)
+          .rotate([0, 0, 0])
+          .clipAngle(90)
+          .translate([width / 2, height / 2]);
+      
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection)
+          .context(ctx); // 指定渲染目标为canvas
+      
+      let features = [];
+
+      // 读取GeoJSON格式数据
+      d3.json('../../geo_data/global_simplify.geojson').then(data => {
+        features = data.features;
+        render();
+      }).catch(err => console.error(err));
+
+
+      
+      // 通过修改投影实现旋转缩放
+      // 保存初始旋转角度和缩放量
+      const initRotate = projection.rotate();
+      const initScale = projection.scale();
+
+      let transform = d3.zoomIdentity;
+
+      // 创建一个缩放行为
+      const zoom = d3.zoom()
+          .scaleExtent([0.5, 10]) // 设置缩放范围
+          .on('zoom', d => {
+            transform = d3.event.transform;
+
+            // 更新投影函数旋转角度
+            projection.rotate([
+              initRotate[0] + 180 * transform.x / width,
+              initRotate[1] - 180 * transform.y / height,
+              initRotate[2]
+            ]);
+
+            // 更新投影函数缩放量
+            projection.scale(initScale * transform.k);
+            
+            // 重绘网格和地图
+            render();
+          });
+
+      d3.select('canvas').call(zoom);
+
+      function render() {
+        ctx.save();
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, width, height);
+
+        // 绘制网格
+        ctx.strokeStyle = '#777';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        geoPath(graticule());
+        ctx.stroke();
+
+        // 绘制网格外圆
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // 对应投影的translate与scale
+        ctx.arc(width / 2, height / 2, 200 * transform.k, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 绘制地图
+        features.forEach((d, i) => {
+          ctx.fillStyle = color(i % 10 / 10);
+          ctx.beginPath();
+          geoPath(d);
+          ctx.fill();
+        });
+
+        ctx.restore();
+      }
+    </script>
+  </body>
+</html>

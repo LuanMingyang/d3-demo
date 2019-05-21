@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const points = [
+        {
+          name: '北京',
+          longitude: 116.389,
+          latitude: 39.9488,
+          img: './img/beijing.jpg'
+        },
+        {
+          name: '上海',
+          longitude: 121.409,
+          latitude: 31.0909,
+          img: './img/shanghai.jpg'
+        },
+        {
+          name: '广西',
+          longitude: 108.756,
+          latitude: 23.7451,
+          img: './img/guilin.jpg'
+        },
+        {
+          name: '新疆',
+          longitude: 85.4253,
+          latitude: 41.122,
+          img: './img/wulumuqi.jpg'
+        },
+        {
+          name: '西藏',
+          longitude: 88.4137,
+          latitude:	31.4515,
+          img: './img/lasa.jpg'
+        }
+      ];
+      
+      const nameMap = {
+        'HKG': 'Hong Kong',
+        'MAC': 'Macau',
+        'TWN': 'Taiwan'
+      };
+
+      const svgWidth = 800;
+      const svgHeight = 500;
+
+      // 颜色
+      const colorScale = d3.scaleLinear()
+          .domain([0, 1])
+          .range([0.5, 1]);
+
+      const color = value => d3.interpolatePuBu(colorScale(value));
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 创建投影
+      const projection = d3.geoMercator()
+          .center([107, 31])
+          .scale(600)
+          .translate([svgWidth / 2, svgHeight / 2 + svgHeight / 6]);
+      
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection);
+
+      // 读取GeoJSON格式数据
+      d3.json('../geo_data/china.geojson').then(data => {
+
+        // 绘制地图
+        svg.append('g')
+          .selectAll('path')
+          .data(data.features)
+          .enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill', d => color(Math.random()));
+
+        // 绘制标注地点
+        const gPoint = svg.append('g')
+          .selectAll('g')
+          .data(points)
+          .enter().append('g')
+            .attr('transform', d => {
+              const coordinate = projection([d.longitude, d.latitude]); // 计算坐标位置
+              return `translate(${coordinate[0]}, ${coordinate[1]})`;
+            });
+
+        gPoint.append('circle')
+            .attr('r', 5);
+
+        gPoint.append('text')
+            .attr('x', -10)
+            .attr('y', 0)
+            .attr('dy', '.3em')
+            .attr('text-anchor', 'end')
+            .text(d => d.name);
+
+        gPoint.append('image')
+            .attr('x', 20)
+            .attr('y', -36)
+            .attr('height', 72)
+            .attr('xlink:href', d => d.img);
+
+      }).catch(err => console.error(err));
+      
+    </script>
+  </body>
+</html>

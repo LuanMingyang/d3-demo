@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Pie</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const dataset = [
+	      ['亚洲', 4400], ['非洲', 3000], ['北美洲', 2400],
+				['南美洲', 1800], ['南极洲', 1400], ['欧洲', 1000],
+				['大洋洲', 900]
+      ];
+
+      const svgWidth = 500;
+      const svgHeight = 500;
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+					.attr('width', svgWidth)
+					.attr('height', svgHeight);
+
+      // 创建饼图生成器，并计算弧数据
+      const piedatas = d3.pie()
+					.value(d => d[1])
+					(dataset);
+
+			// 创建弧生成器
+			const arc = d3.arc()
+					.innerRadius(0)
+					.outerRadius(180);
+
+      // 绘制饼图
+      const arcs = svg.selectAll('g')
+				.data(piedatas)
+				.enter().append('g')
+					.attr('transform', `translate(${svgWidth / 2}, ${svgHeight / 2})`);
+			arcs.append('path')
+					.attr('d', d => arc(d))
+					.attr('fill', (d, i) => d3.schemePaired[i]);
+
+			// 计算中间点，中间点并不是几何中心，中间点为[(startAngle + endAngle) / 2, (innerRadius + outerRadius) / 2]
+			const centroids = piedatas.map(d => arc.centroid(d));
+			
+			// 添加弧内文字
+			const sum = d3.sum(dataset, d => d[1]);
+			arcs.append('text')
+					// 通过中间点乘一个系数k，可以获取圆心与弧中心所在直线上的任意点
+					.attr('transform', (d, i) => `translate(${centroids[i][0] * 1.4}, ${centroids[i][1] * 1.4})`)
+					.attr('text-anchor', 'middle')
+					.text(d => (d.value / sum * 100).toFixed(1) + '%');
+
+			// 添加弧外文字以及连接线
+			arcs.append('line')
+					.attr('stroke', 'black')
+					.attr('x1', (d, i) => centroids[i][0] * 2)
+					.attr('y1', (d, i) => centroids[i][1] * 2)
+					.attr('x2', (d, i) => centroids[i][0] * 2.2)
+					.attr('y2', (d, i) => centroids[i][1] * 2.2);
+			arcs.append('text')
+					.attr('transform', (d, i) => `translate(${centroids[i][0] * 2.5}, ${centroids[i][1] * 2.5})`)
+					.attr('text-anchor', 'middle')
+					.text(d => d.data[0]);
+    </script>
+  </body>
+</html>

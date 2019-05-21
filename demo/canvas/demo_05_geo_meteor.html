@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Meteor</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <canvas width="800" height="500"></canvas>
+    <script>
+      const points = [
+        { name: '北京', loc: [116, 39], color: d3.schemeSet2[0] },
+        { name: '上海', loc: [121, 31], color: d3.schemeSet2[1] },
+        { name: '广州', loc: [113, 23], color: d3.schemeSet2[2] },
+        { name: '昆明', loc: [102, 24], color: d3.schemeSet2[3] },
+        { name: '西安', loc: [108, 34], color: d3.schemeSet2[4] },
+        { name: '武汉', loc: [114, 30], color: d3.schemeSet2[5] },
+        { name: '乌鲁木齐', loc: [87, 43], color: d3.schemeSet2[6] },
+        { name: '拉萨', loc: [91, 29], color: d3.schemeSet2[7] }
+      ];
+
+      class Meteor {
+        constructor(start, end, color, projection, ctx) {
+          this.start = start;
+          this.end = end;
+          this.color = color;
+          this.projection = projection;
+          this.ctx = ctx;
+
+          this.current = [...start];
+          this.isEnd = false;
+        }
+
+        render = () => {
+          const pos = this.projection(this.current);
+          this.ctx.save();
+          this.ctx.fillStyle = this.color;
+          this.ctx.beginPath();
+          this.ctx.arc(pos[0], pos[1], 5, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.restore();
+        };
+
+        update = () => {
+          if (this.isEnd) {
+            return;
+          }
+
+          const distance = Math.sqrt((this.current[0] - this.end[0])**2 + (this.current[1] - this.end[1])**2);
+
+          if (distance > 0.1) {
+            this.current[0] += (this.end[0] - this.start[0]) * 0.01;
+            this.current[1] += (this.end[1] - this.start[1]) * 0.01;
+          } else {
+            this.isEnd = true;
+          }
+        }
+      }
+
+      const canvas = document.querySelector('canvas');
+      const width = canvas.width;
+      const height = canvas.height;
+      const ctx = canvas.getContext('2d');
+
+      const color = d3.interpolateGnBu;
+
+      // 创建投影
+      const projection = d3.geoMercator()
+          .center([107, 31])
+          .scale(600)
+          .translate([width / 2, height / 1.5]);
+      
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection)
+          .context(ctx); // 指定渲染目标为canvas
+
+      let features = [];
+      const meteors = [];
+
+      d3.json('../../geo_data/china.geojson').then(data => {
+        features = data.features;
+      }).catch(err => console.error(err));
+
+      setInterval(() => {
+        // 刷新画布背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(0, 0, width, height);
+
+        // features.forEach((d, i) => {
+        //   ctx.fillStyle = 'black';
+        //   ctx.beginPath();
+        //   geoPath(d);
+        //   ctx.fill();
+        // });
+
+        ctx.strokeStyle = 'gray';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        features.forEach(d => {
+          geoPath(d);
+        });
+        ctx.stroke();
+
+        if (Math.random() < 0.2) {
+          const start = points[Math.floor(Math.random() * points.length)];
+          const end = points[Math.floor(Math.random() * points.length)];
+          const meteor = new Meteor(start.loc, end.loc, start.color, projection, ctx);
+          meteors.push(meteor);
+        }
+
+        for (let i = meteors.length - 1; i >= 0; i--) {
+          meteors[i].render();
+          meteors[i].update();
+          if (meteors[i].isEnd) {
+            meteors.splice(i, 1);
+          }
+        }
+
+      }, 50);
+      
+    </script>
+  </body>
+</html>

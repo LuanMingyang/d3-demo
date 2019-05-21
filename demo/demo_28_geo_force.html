@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const svgWidth = 720;
+      const svgHeight = 560;
+
+      const color = d3.interpolateGnBu;
+
+      const sites = [];
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 创建一个泰森多边形布局
+      const	voronoi = d3.voronoi()
+          .x(d => d.x)
+          .y(d => d.y);
+
+      // 创建经纬线网格生成器
+      const graticule = d3.geoGraticule()
+          .extent([[71, 16], [137, 54]]) // 设置网格范围在经度71°~137°，纬度16°~54°
+          .step([5, 5]); // 经度和纬度间隔都为5°
+
+      // 创建投影
+      const projection = d3.geoMercator()
+          .center([107, 31])
+          .scale(600)
+          .translate([svgWidth / 2, svgHeight / 2 + svgHeight / 6]);
+
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection);
+
+      // 绘制网格
+      svg.append('g')
+        .append('path')
+          .datum(graticule()) // 生成并绑定网格数据
+          .attr('d', geoPath)
+          .attr('stroke', 'black');
+
+      // 读取GeoJSON格式数据
+      d3.json('../geo_data/china.geojson').then(data => {
+
+        data.features.forEach(item => {
+          const centroid = geoPath.centroid(item);
+          centroid.x = centroid[0];
+          centroid.y = centroid[1];
+          centroid.feature = item;
+          sites.push(centroid);
+        });
+
+        const links = voronoi.links(sites);
+
+        // 创建力学模型仿真，仿真会自动start
+        const forceSimulation = d3.forceSimulation(sites)
+            .force('link', d3.forceLink(links).distance(d => {
+              const dx = d.source.x - d.target.x;
+              const dy = d.source.y - d.target.y;
+              return Math.sqrt(dx**2, dy**2);
+            }))
+            .force('charge', d3.forceManyBody().strength(-10))
+            .on('tick', () => {
+              line.attr('x1', d => d.source.x)
+                  .attr('y1', d => d.source.y)
+                  .attr('x2', d => d.target.x)
+                  .attr('y2', d => d.target.y);
+
+              site.attr('transform', d => `translate(${d.x}, ${d.y})`);
+            })
+            .stop();
+
+        // 创建一个拖拽行为
+        const drag = d3.drag()
+            .on('start', d => {
+              if (!d3.event.active) {
+                forceSimulation.alphaTarget(0.8).restart();
+              }
+              d.fx = d.x;
+              d.fy = d.y;
+            })
+            .on('drag', d => {
+              d.fx = d3.event.x;
+              d.fy = d3.event.y;
+            })
+            .on('end', d => {
+              if (!d3.event.active) {
+                forceSimulation.alphaTarget(0)
+              }
+              d.fx = null;
+              d.fy = null;
+            });
+
+        const site = svg.append('g')
+          .selectAll('g')
+          .data(sites)
+          .enter().append('g')
+            .attr('transform', d => `translate(${-d.x}, ${-d.y})`)
+            .call(drag)
+          .append('path')
+            .attr('d', d => geoPath(d.feature))
+            .attr('transform', d => `translate(${d.x}, ${d.y})`)
+            .attr('stroke', '#000')
+            .attr('fill', color(Math.random()));
+
+        const line = svg.append('g')
+          .selectAll('line')
+          .data(links)
+          .enter().append('line')
+            .attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y)
+            .attr('stroke', '#000');
+
+      }).catch(err => console.error(err));
+      
+    </script>
+  </body>
+</html>

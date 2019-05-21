@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Scatter Diagram</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const dataset = [
+        [0.5, 0.5], [0.7, 0.8], [0.4, 0.9], [0.11, 0.32], [0.88, 0.25],
+        [0.75, 0.12], [0.5, 0.1], [0.2, 0.3], [0.4, 0.1], [0.6, 0.7]
+      ];
+
+      const svgWidth = 500;
+      const svgHeight = 500;
+
+      const padding = {
+        top: 30,
+        right: 30,
+        bottom: 30,
+        left: 30
+      };
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 绘制坐标轴
+      const gAxis = svg.append('g')
+          .attr('transform', `translate(${padding.left}, ${padding.top})`);
+
+      const xAxisWidth = svgWidth - padding.left - padding.right;
+      const yAxisHeight = svgHeight - padding.top - padding.bottom;
+
+      // x轴
+      const xScale = d3.scaleLinear()
+          .domain([0, 1.2 * d3.max(dataset, d => d[0])]) // max * 1.2 是为了使散点不存在于坐标轴边界上
+          .range([0, xAxisWidth]);
+      const xAxis = d3.axisBottom(xScale);
+      gAxis.append('g')
+          .attr('transform', `translate(0, ${yAxisHeight})`)
+          .call(xAxis);
+
+      // y轴
+      const yScale = d3.scaleLinear()
+          .domain([0, 1.2 * d3.max(dataset, d => d[1])])
+          .range([yAxisHeight, 0]);
+      const yAxis = d3.axisLeft(yScale);
+      gAxis.append('g').call(yAxis);
+
+      // 绘制离散点
+      const gPoint = svg.append('g')
+          .attr('transform', `translate(${padding.left}, ${padding.top})`)
+          .attr('fill', 'black');
+      gPoint.selectAll('circle')
+        .data(dataset)
+        .enter().append('circle')
+          .attr('cx', d => xScale(d[0]))
+          .attr('cy', d => yScale(d[1]))
+          .attr('r', 5);
+    </script>
+  </body>
+</html>

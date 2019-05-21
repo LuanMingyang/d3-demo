@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Force</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const nodes = [
+				{ name: '0' },
+				{ name: '1' },
+				{ name: '2' },
+				{ name: '3' },
+				{ name: '4' },
+				{ name: '5' },
+				{ name: '6' },
+			];
+			
+			const links = [
+				{ source: 0, target: 1 },
+				{ source: 0, target: 2 },
+				{ source: 0, target: 3 },
+				{ source: 1, target: 4 },
+				{ source: 1, target: 5 },
+				{ source: 1, target: 6 },
+			];
+
+      const svgWidth = 500;
+      const svgHeight = 500;
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+					.attr('width', svgWidth)
+					.attr('height', svgHeight);
+
+      // 创建力学模型仿真，仿真会自动start
+			const forceSimulation = d3.forceSimulation(nodes)
+					.force('link', d3.forceLink(links).distance(100))
+					.force('charge', d3.forceManyBody().strength(-100))
+					.force('center', d3.forceCenter(svgWidth / 2, svgHeight / 2))
+					.on('tick', () => {
+						link.attr('x1', d => d.source.x)
+							.attr('y1', d => d.source.y)
+							.attr('x2', d => d.target.x)
+							.attr('y2', d => d.target.y);
+		
+						gPoint.attr('transform', d => `translate(${d.x}, ${d.y})`);
+					});
+			// console.log(nodes);
+			// console.log(links);
+
+			// 绘制边
+			const gLink = svg.append('g')
+					.attr('stroke', 'black')
+					.attr('stroke-width', 1);
+			const link = gLink.selectAll('line')
+				.data(links)
+				.enter().append('line');
+
+			// 创建一个拖拽行为
+      const drag = d3.drag()
+					.on('start', d => {
+						if (!d3.event.active) {
+							// alpha∈[0，1] 可以理解为冷却程度，在仿真内部，会不断的减小alpha，直到 alpha < alphaMin 停止
+							// 可以参考源码理解 https://github.com/d3/d3-force/blob/master/src/simulation.js#L31
+							// 拖拽开始，设置 alphaTarget > alphaMin，使得在拖拽过程中持续迭代布局
+							// 拖拽结束，设置 alphaTarget = 0，使得在拖拽结束后的一段时间内，停止迭代
+							forceSimulation.alphaTarget(0.8).restart();
+						}
+						d.fx = d.x;
+						d.fy = d.y;
+					})
+					.on('drag', d => {
+						d.fx = d3.event.x;
+						d.fy = d3.event.y;
+					})
+					.on('end', d => {
+						if (!d3.event.active) {
+							forceSimulation.alphaTarget(0)
+						}
+						d.fx = null;
+						d.fy = null;
+					});
+
+			// 绘制节点及文字
+			const gPoint = svg.selectAll('g')
+				.data(nodes)
+				.enter().append('g')
+					.attr('fill', 'white')
+					.attr('text-anchor', 'middle')
+					.call(drag);
+
+			gPoint.append('circle')
+					.attr('r', 15)
+					.attr('fill', (d, i) => d3.schemePaired[i]);
+
+			gPoint.append('text')
+					.attr('dy', '.3em')
+					.text(d => d.name);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,224 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Tooltip</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+    <style>
+      .tooltip {
+        /* display: none; */
+        position: absolute;
+        width: 160px;
+        text-align: center;
+        font-size: 14px;
+        border: 1px solid #000;
+        border-radius: 5px;
+        background: #fff;
+        z-index: 999;
+        opacity: 0;
+      }
+
+      .title {
+        font-weight: bold;
+        line-height: 30px;
+        border-bottom: 1px solid #000;
+      }
+
+      .content {
+        padding: 0 16px;
+        text-align: left;
+        line-height: 24px;
+      }
+
+      .desc {
+        margin: 0;
+      }
+
+      .descColor {
+        display: inline-block;
+        margin-right: 12px;
+        width: 10px;
+        height: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="tooltip">
+      <div class="title"></div>
+      <div class="content"></div>
+    </div>
+    <script>
+      const dataset = [
+        {
+          country: 'China',
+          gdp: [
+            [2000, 11920], [2001, 13170], [2002, 14550],
+            [2003, 16500], [2004, 19440], [2005, 22870],
+            [2006, 27930], [2007, 35040], [2008, 45470],
+            [2009, 51050], [2010, 59490], [2011, 73140],
+            [2012, 83860], [2013, 103550]
+          ]
+        },
+        {
+          country: 'Japan',
+          gdp: [
+            [2000, 47310], [2001, 41590], [2002, 39800],
+            [2003, 43020], [2004, 46550], [2005, 45710],
+            [2006, 43560], [2007, 43560], [2008, 48490],
+            [2009, 50350], [2010, 54950], [2011, 59050],
+            [2012, 59370], [2013, 48980]
+          ]
+        }
+      ];
+
+      const svgWidth = 500;
+      const svgHeight = 500;
+
+      const padding = {
+        top: 50,
+        right: 50,
+        bottom: 50,
+        left: 50
+      };
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight)
+        .append('g')
+          .attr('transform', `translate(${padding.left}, ${padding.top})`);
+      
+      // 绘制坐标轴
+      const gAxis = svg.append('g');
+
+      const xAxisWidth = svgWidth - padding.left - padding.right;
+      const yAxisHeight = svgHeight - padding.top - padding.bottom;
+
+      // 计算两国GDP最大值
+      const datas = dataset.reduce((acc, cur) => [...acc, ...cur.gdp], []);
+      const yearMin = d3.min(datas, d => d[0]);
+      const yearMax = d3.max(datas, d => d[0]);
+      const gdpMax = d3.max(datas, d => d[1]);
+
+      // x轴
+      const xScale = d3.scaleLinear()
+          .domain([yearMin, yearMax])
+          .range([0, xAxisWidth]);
+      const xAxis = d3.axisBottom(xScale).ticks(7);
+      gAxis.append('g')
+          .attr('transform', `translate(0, ${yAxisHeight})`)
+          .call(xAxis);
+      // y轴
+      const yScale = d3.scaleLinear()
+          .domain([0, 1.1 * gdpMax])
+          .range([yAxisHeight, 0]);
+      const yAxis = d3.axisLeft(yScale);
+      gAxis.append('g').call(yAxis);
+
+      // 绘制折线
+      // 定义颜色
+      const colors = [d3.schemeCategory10[1], d3.schemeCategory10[0]];
+      // 创建直线生成器
+      const linePath = d3.line()
+          .x(d => xScale(d[0]))
+          .y(d => yScale(d[1]));
+      // 添加路径
+      const gLine = svg.append('g')
+          .attr('fill', 'none')
+          .attr('stroke-width', 1.5)
+        .selectAll('g')
+        .data(dataset)
+        .enter().append('g');
+
+      gLine.append('path')
+          .attr('d', d => linePath(d.gdp)) // 将路径设置为直线生成器生成的路径
+          .attr('stroke', (d, i) => colors[i]);
+
+      // 折点处圆点
+      const turningPoint = gLine.append('g')
+        .selectAll('circle')
+        .data((d, i) => d.gdp.map(item => {
+          item.color = colors[i];
+          return item;
+        }))
+        .enter().append('circle')
+          .attr('cx', d => xScale(d[0]))
+          .attr('cy', d => yScale(d[1]))
+          .attr('r', 2)
+          .attr('fill', '#fff')
+          .attr('stroke', d => d.color)
+          .attr('stroke-width', 1);
+
+      // 添加交互元素
+      const vLine = svg.append('g')
+        .append('line')
+          .attr('stroke', 'gray')
+          .attr('stroke-dasharray', '5 4')
+          .style('display', 'none');
+
+      const tooltip = d3.select('.tooltip');
+
+      const tooltipDesc = tooltip.select('.content')
+        .selectAll('.desc')
+        .data(dataset)
+        .enter().append('p')
+          .attr('class', 'desc');
+
+      tooltipDesc.append('span')
+          .attr('class', 'descColor')
+          .style('background', (d, i) => colors[i]);
+      
+      const tooltipText = tooltipDesc.append('span');
+
+      // 添加一个透明矩形，用于捕获事件
+      svg.append('rect')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', xAxisWidth)
+        .attr('height', yAxisHeight)
+        .attr('fill', 'none')
+        .style('pointer-events', 'all')
+        .on('mouseover', () => {
+          tooltip.style('opacity', 1);
+          vLine.style('display', null);
+        })
+        .on('mousemove', function () {
+          // 获取鼠标位置
+          const mouseX = d3.mouse(this)[0];
+          // 通过反函数计算x轴对应的值，四舍五入避免出现类似2012.6的情况
+          const year = Math.round(xScale.invert(mouseX));
+          // 获取对应年份的数据
+          const focusDatas = dataset.map(item => {
+            return {
+              country: item.country,
+              gdp: item.gdp.find(item => item[0] === year)[1]
+            };
+          });
+
+          turningPoint.attr('r', 2);
+          turningPoint.filter(d => d[0] === year).attr('r', 5);
+
+          // 修改提示框标题及内容
+          tooltip.select('.title').html(`${year}年GDP`);
+          tooltipText.data(focusDatas)
+              .html(d => `${d.country}：\t${d.gdp}`);
+
+          // 更新提示框位置
+          tooltip.style('left', `${d3.event.pageX}px`)
+              .style('top', `${d3.event.pageY + 20}px`);
+
+          // 更新垂直对齐线位置
+          vLine.attr('x1', xScale(year))
+              .attr('y1', 0)
+              .attr('x2', xScale(year))
+              .attr('y2', yAxisHeight);
+        })
+        .on('mouseout', () => {
+          turningPoint.attr('r', 2);
+          tooltip.style('opacity', 0);
+          vLine.style('display', 'none');
+        });
+
+    </script>
+  </body>
+</html>

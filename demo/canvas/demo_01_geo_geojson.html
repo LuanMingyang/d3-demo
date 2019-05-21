@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <canvas width="800" height="500"></canvas>
+    <script>
+      const canvas = document.querySelector('canvas');
+      const width = canvas.width;
+      const height = canvas.height;
+      const ctx = canvas.getContext('2d');
+
+      const color = d3.interpolateGnBu;
+
+      // 创建投影
+      const projection = d3.geoMercator()
+          .center([107, 31])
+          .scale(600)
+          .translate([width / 2, height / 1.5]);
+      
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection)
+          .context(ctx); // 指定渲染目标为canvas
+
+      let features = [];
+      let markedFeatures = []; // 存储被标记的feature
+
+      let mouseX = 0;
+      let mouseY = 0;
+
+      // 读取GeoJSON格式数据
+      d3.json('../../geo_data/china.geojson').then(data => {
+        features = data.features;
+        render();
+      }).catch(err => console.error(err));
+
+      d3.select('canvas')
+          .on('click', () => {
+            mouseX = d3.event.offsetX;
+            mouseY = d3.event.offsetY;
+            render();
+          });
+
+      function render() {
+        // 重置画布
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, width, height);
+
+        features.forEach((d, i) => {
+          ctx.fillStyle = color(i % 10 / 10);
+          ctx.beginPath();
+          geoPath(d);
+
+          if (ctx.isPointInPath(mouseX, mouseY)) {
+            if (!markedFeatures.includes(d)) {
+              markedFeatures.push(d);
+            }
+          }
+
+          ctx.fill();
+        });
+
+        markedFeatures.forEach(d => {
+          const centroid = geoPath.centroid(d);  // 中心
+          const bounds = geoPath.bounds(d);      // 边界框
+
+          ctx.strokeStyle = 'black';
+          ctx.beginPath();
+          ctx.strokeRect(bounds[0][0], bounds[0][1], bounds[1][0] - bounds[0][0], bounds[1][1] - bounds[0][1]);
+
+          ctx.fillStyle = 'black';
+          ctx.beginPath();
+          ctx.arc(centroid[0], centroid[1], 5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+      
+    </script>
+  </body>
+</html>

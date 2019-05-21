@@ -1,0 +1,300 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const provinces = [
+        {
+          "name": "Xinjiang",
+          "adm0_a3": "CHN",
+          "value": 6344.94
+        },
+        {
+          "name": "Xizang",
+          "adm0_a3": "CHN",
+          "value": 1344.35
+        },
+        {
+          "name": "Inner Mongol",
+          "adm0_a3": "CHN",
+          "value": 5746.09
+        },
+        {
+          "name": "Gansu",
+          "adm0_a3": "CHN",
+          "value": 5465
+        },
+        {
+          "name": "Yunnan",
+          "adm0_a3": "CHN",
+          "value": 7894.28
+        },
+        {
+          "name": "Heilongjiang",
+          "adm0_a3": "CHN",
+          "value": 9892
+        },
+        {
+          "name": "Jilin",
+          "adm0_a3": "CHN",
+          "value": 8705.15
+        },
+        {
+          "name": "Liaoning",
+          "adm0_a3": "CHN",
+          "value": 9990
+        },
+        {
+          "name": "Guangxi",
+          "adm0_a3": "CHN",
+          "value": 2018.12
+        },
+        {
+          "name": "Guangdong",
+          "adm0_a3": "CHN",
+          "value": 13785.45
+        },
+        {
+          "name": "Hainan",
+          "adm0_a3": "CHN",
+          "value": 10248.5
+        },
+        {
+          "name": "Fujian",
+          "adm0_a3": "CHN",
+          "value": 10736
+        },
+        {
+          "name": "Zhejiang",
+          "adm0_a3": "CHN",
+          "value": 15720.86
+        },
+        {
+          "name": "Shanghai",
+          "adm0_a3": "CHN",
+          "value": 17163.7
+        },
+        {
+          "name": "Jiangsu",
+          "adm0_a3": "CHN",
+          "value": 11279.5
+        },
+        {
+          "name": "Shandong",
+          "adm0_a3": "CHN",
+          "value": 10979.5
+        },
+        {
+          "name": "Hebei",
+          "adm0_a3": "CHN",
+          "value": 9697.89
+        },
+        {
+          "name": "Tianjin",
+          "adm0_a3": "CHN",
+          "value": 10540
+        },
+        {
+          "name": "Beijing",
+          "adm0_a3": "CHN",
+          "value": 16550
+        },
+        {
+          "name": "Sichuan",
+          "adm0_a3": "CHN",
+          "value": 10005
+        },
+        {
+          "name": "Chongqing",
+          "adm0_a3": "CHN",
+          "value": 10479
+        },
+        {
+          "name": "Guizhou",
+          "adm0_a3": "CHN",
+          "value": 6736
+        },
+        {
+          "name": "Hunan",
+          "adm0_a3": "CHN",
+          "value": 9547
+        },
+        {
+          "name": "Ningxia",
+          "adm0_a3": "CHN",
+          "value": 2746
+        },
+        {
+          "name": "Shaanxi",
+          "adm0_a3": "CHN",
+          "value": 5465
+        },
+        {
+          "name": "Qinghai",
+          "adm0_a3": "CHN",
+          "value": 3908
+        },
+        {
+          "name": "Shanxi",
+          "adm0_a3": "CHN",
+          "value": 3435
+        },
+        {
+          "name": "Jiangxi",
+          "adm0_a3": "CHN",
+          "value": 7947
+        },
+        {
+          "name": "Henan",
+          "adm0_a3": "CHN",
+          "value": 7300.8
+        },
+        {
+          "name": "Hubei",
+          "adm0_a3": "CHN",
+          "value": 9376.15
+        },
+        {
+          "name": "Anhui",
+          "adm0_a3": "CHN",
+          "value": 4563
+        },
+        {
+          "name": "Paracel Islands",
+          "adm0_a3": "CHN",
+          "value": 0
+        },
+        {
+          "name": "Hong Kong",
+          "adm0_a3": "HKG",
+          "value": 18473.55
+        },
+        {
+          "name": "Macau",
+          "adm0_a3": "MAC",
+          "value": 13092
+        },
+        {
+          "name": "Taiwan",
+          "adm0_a3": "TWN",
+          "value": 9074.51
+        }
+      ];
+      
+      const nameMap = {
+        'HKG': 'Hong Kong',
+        'MAC': 'Macau',
+        'TWN': 'Taiwan'
+      };
+
+      const svgWidth = 800;
+      const svgHeight = 500;
+
+      // 数据转换
+      const provinceMap = provinces.reduce((acc, cur) => {
+        acc[cur.name] = cur.value;
+        return acc;
+      }, {});
+
+      const maxValue = d3.max(provinces, d => d.value);
+
+      const colorScale = d3.scaleLinear()
+          .domain([0, maxValue])
+          .range([0.5, 1]);
+
+      const color = value => d3.interpolatePuBu(colorScale(value));
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 创建投影
+      const projection = d3.geoMercator()
+          .center([107, 31])
+          .scale(600)
+          .translate([svgWidth / 2, svgHeight / 2 + svgHeight / 6]);
+      
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection);
+
+      // 读取GeoJSON格式数据
+      d3.json('../geo_data/china.geojson').then(data => {
+
+        // 将数据合并为四个区域：大陆、香港、澳门、台湾
+        const areaMerged = data.features.reduce((acc, cur) => {
+          const isMainland = cur.properties.adm0_a3 === 'CHN';
+          acc[cur.properties.adm0_a3]
+              ? acc[cur.properties.adm0_a3].features.push(cur)
+              : acc[cur.properties.adm0_a3] = { type: 'FeatureCollection', features: [cur] };
+          return acc;
+        }, {});
+
+        // 获取大陆所有省份、香港、澳门、台湾
+        const features = Object.keys(areaMerged).reduce((acc, cur) => {
+          if (cur === 'CHN') {
+            acc = [...acc, ...areaMerged[cur].features];
+          } else {
+            // 添加properties属性
+            acc.push({ ...areaMerged[cur], properties: { adm0_a3: cur, name: nameMap[cur] }});
+          }
+          return acc;
+        }, []);
+
+        // 绘制地图
+        svg.append('g')
+          .selectAll('path')
+          .data(features)
+          .enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill', d => color(provinceMap[d.properties.name]));
+
+      }).catch(err => console.error(err));
+
+      // 绘制颜色比例尺
+      // 定义线性渐变
+      const defs = svg.append('defs');
+      const linearGradient = defs.append('linearGradient')
+          .attr('id', 'linearColor')
+          .attr('x1', '0%')
+          .attr('y1', '0%')
+          .attr('x2', '100%')
+          .attr('y2', '0%');
+      linearGradient.append('stop')
+          .attr('offset', '0%')
+          .attr('stop-color', color(0));
+      linearGradient.append('stop')
+          .attr('offset', '100%')
+          .attr('stop-color', color(maxValue));
+
+      const gLinearGradient = svg.append('g')
+          .attr('font-size', '12px')
+          .attr('text-anchor', 'middle');
+
+      gLinearGradient.append('rect')
+          .attr('x', 20)
+          .attr('y', 470)
+          .attr('width', 140)
+          .attr('height', 30)
+          .attr('fill', `url(#${linearGradient.attr('id')})`);
+
+      // 添加文字
+      gLinearGradient.append('text')
+          .attr('x', 20)
+          .attr('y', 470)
+          .attr('dy', '-0.1em')
+          .text('0');
+      gLinearGradient.append('text')
+          .attr('x', 20 + 140)
+          .attr('y', 470)
+          .attr('dy', '-0.1em')
+          .text(maxValue);
+      
+    </script>
+  </body>
+</html>

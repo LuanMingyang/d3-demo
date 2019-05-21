@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Event</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const dataset = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'];
+
+      const svgWidth = 650;
+      const svgHeight = 100;
+      const padding = {
+        top: 20,
+        right: 20,
+        bottom: 20,
+        left: 20
+      };
+      const rectStep = 65;
+      const rectWidth = 60;
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 绘制矩形
+      const gRect = svg.append('g').attr('fill', 'black');
+      const rect = gRect.selectAll('rect')
+        .data(dataset)
+        .enter().append('rect')
+          .attr('x', (d, i) => padding.left + i * rectStep)
+          .attr('y', padding.top)
+          .attr('width', rectWidth)
+          .attr('height', rectWidth)
+          .attr('rx', 5)
+          .attr('ry', 5)
+          // 监听鼠标事件
+          .on('mouseover', function (d, i) { // 此处若使用arrow function会导致this指向window，而不是期待的rect
+            d3.select(this).attr('fill', 'gray');
+          })
+          .on('mouseout', function (d, i) {
+            d3.select(this).transition().duration(500).attr('fill', 'black');
+          });
+
+      // 绘制文字
+      const gText = svg.append('g')
+          .attr('fill', 'white')
+          .attr('font-size', '24px')
+          .attr('text-anchor', 'middle');
+      gText.selectAll('text')
+        .data(dataset)
+        .enter().append('text')
+          .attr('x', (d, i) => padding.left + i * rectStep)
+          .attr('y', padding.top)
+          .attr('dx', rectWidth / 2)
+          .attr('dy', '1em')
+          .text(d => d);
+
+      // 监听键盘事件
+      // keydown按下任意键都会触发，不区分大小写；keypress按下字符键时触发，区分大小写
+      d3.select('body')
+          .on('keydown', function () {
+            rect.attr('fill', d => d === String.fromCharCode(d3.event.keyCode) ? 'gray' : 'black');
+          })
+          .on('keyup', function () {
+            rect.transition().duration(500).attr('fill', 'black');
+          });
+    </script>
+  </body>
+</html>

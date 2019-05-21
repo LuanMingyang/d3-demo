@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Tree</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const data = [
+        {'name': 'Eve',   'parent': ''},
+        {'name': 'Cain',  'parent': 'Eve'},
+        {'name': 'Seth',  'parent': 'Eve'},
+        {'name': 'Enos',  'parent': 'Seth'},
+        {'name': 'Noam',  'parent': 'Seth'},
+        {'name': 'Abel',  'parent': 'Eve'},
+        {'name': 'Awan',  'parent': 'Eve'},
+        {'name': 'Enoch', 'parent': 'Awan'},
+        {'name': 'Azura', 'parent': 'Eve'}
+      ];
+
+      // 将扁平数据重组为层次结构数据
+      const root = d3.stratify()
+          .id(d => d.name)
+          .parentId(d => d.parent)
+          (data);
+
+      // console.log(root);
+
+      const svgWidth = 500;
+      const svgHeight = 500;
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      const gTree = svg.append('g')
+          .attr('font-family', 'sans-serif')
+          .attr('font-size', 10)
+          .attr('transform', 'translate(50, 0)');
+	  
+      // 创建一个树布局并获取转换数据
+      const tree = d3.tree()
+          .size([svgWidth, svgHeight - 200])
+          .separation((a, b) => (a.parent === b.parent ? 1 : 2) / a.depth)
+          (root);
+
+      // console.log(tree.descendants()); // 节点
+      // console.log(tree.links());       // 边
+
+      // 创建一个水平三次贝塞尔曲线生成器
+      const linkHorizontal = d3.linkHorizontal()
+          .x(d => d.y) // x坐标与y坐标对调
+          .y(d => d.x);
+
+      // 绘制边
+      gTree.append('g')
+          .attr('fill', 'none')
+          .attr('stroke', '#555')
+          .attr('stroke-opacity', 0.4)
+          .attr('stroke-width', 1)
+        .selectAll('path')
+        .data(tree.links())
+        .enter().append('path')
+          .attr('d', linkHorizontal);
+
+      // 绘制点和文字
+      const gNode = gTree.append('g')
+          .attr('stroke-linejoin', 'round')
+          .attr('stroke-width', 3)
+        .selectAll('g')
+        .data(root.descendants())
+        .enter().append('g')
+          .attr('transform', d => `translate(${d.y}, ${d.x})`);
+      gNode.append('circle')
+          .attr('fill', d => d.children ? '#555' : '#999')
+          .attr('r', 2.5);
+      gNode.append('text')
+          .attr('x', d => d.children ? -6 : 6)
+          .attr('dy', '.3em')
+          .attr('text-anchor', d => d.children ? 'end' : 'start')
+          .text(d => d.data.name)
+        .clone(true).lower() // 深克隆当前元素，作为其父元素的第一个子元素插入并返回
+          .attr('stroke', 'white'); // 设置为白色，覆盖住文字下方的曲线
+    </script>
+  </body>
+</html>

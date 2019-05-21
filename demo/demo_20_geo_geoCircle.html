@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const svgWidth = 800;
+      const svgHeight = 500;
+
+      const color = d3.interpolateGnBu;
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 创建一个等差数列，首项为0，末项为180，公差为5
+      const radius = d3.range(0, 180, 5);
+
+      // 创建圆形网格生成器
+      const geoCircle = d3.geoCircle()
+          .center([77, -19]);
+
+      // 创建投影
+      const projection = d3.geoOrthographic()
+          .center([0, 0])
+          .scale(240)
+          .rotate([-50, 0])
+          .clipAngle(90)
+          .translate([svgWidth / 2, svgHeight / 2]);
+
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection);
+
+      // 绘制网格
+      svg.append('g')
+        .selectAll('path')
+        .data(radius)
+        .enter().append('path')
+          .attr('d', d => geoPath(geoCircle.radius(d)()))
+          .attr('fill', 'none')
+          .attr('stroke', 'black');
+
+      // 读取GeoJSON格式数据
+      d3.json('../geo_data/global_simplify.geojson').then(data => {
+        
+        // 绘制地图
+        svg.append('g')
+          .selectAll('path')
+          .data(data.features)
+          .enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill', () => color(Math.random()));
+
+      }).catch(err => console.error(err));
+      
+    </script>
+  </body>
+</html>

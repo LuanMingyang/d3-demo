@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Transition</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <div>
+      <button type="button" onclick="update()">更新数据</button>
+      <button type="button" onclick="add()">增加数据</button>
+      <button type="button" onclick="del()">删除数据</button>
+    </div>
+    <script>
+      const dataset = [
+        [0.5, 0.5], [0.7, 0.8], [0.4, 0.9], [0.11, 0.32], [0.88, 0.25],
+        [0.75, 0.12], [0.5, 0.1], [0.2, 0.3], [0.4, 0.1], [0.6, 0.7]
+      ];
+
+      const svgWidth = 500;
+      const svgHeight = 500;
+
+      const padding = {
+        top: 30,
+        right: 30,
+        bottom: 30,
+        left: 30
+      };
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 绘制坐标轴
+      const gAxis = svg.append('g')
+          .attr('transform', `translate(${padding.left}, ${padding.top})`);
+
+      const xAxisWidth = svgWidth - padding.left - padding.right;
+      const yAxisHeight = svgHeight - padding.top - padding.bottom;
+      // x轴
+      const xScale = d3.scaleLinear()
+          .domain([0, 1.2 * d3.max(dataset, d => d[0])]) // max * 1.2 是为了使散点不存在于坐标轴边界上
+          .range([0, xAxisWidth]);
+      const xAxis = d3.axisBottom(xScale);
+      gAxis.append('g')
+          .attr('transform', `translate(0, ${yAxisHeight})`)
+          .call(xAxis);
+      // y轴
+      const yScale = d3.scaleLinear()
+          .domain([0, 1.2 * d3.max(dataset, d => d[1])])
+          .range([yAxisHeight, 0]);
+      const yAxis = d3.axisLeft(yScale);
+      gAxis.append('g').call(yAxis);
+
+      // 绘制离散点
+      const gPoint = svg.append('g')
+          .attr('transform', `translate(${padding.left}, ${padding.top})`)
+          .attr('fill', 'black');
+
+      drawPoint();
+
+      // 应用过渡绘制离散点
+      function drawPoint() {
+        const point = gPoint.selectAll('circle').data(dataset);
+        // 更新
+        point.transition()
+            .duration(2500)
+            .attr('cx', d => xScale(d[0]))
+            .attr('cy', d => yScale(d[1]));
+        // 新建
+        point.enter().append('circle')
+            .attr('cx', 0)
+            .attr('cy', yAxisHeight)    // 过渡前置于所绘制的坐标轴的原点
+            .attr('r', 5)
+          .transition()
+            .duration(2500)
+            .attr('cx', d => xScale(d[0]))
+            .attr('cy', d => yScale(d[1]));
+        // 移除
+        point.exit()
+          .transition()
+            .duration(2500)
+            .attr('fill', 'white')
+            .remove();
+      }
+
+      function update() {
+        dataset.forEach(item => {
+          item[0] = Math.random();
+          item[1] = Math.random();
+        });
+        drawPoint();
+      }
+
+      function add() {
+        dataset.push([Math.random(), Math.random()]);
+        drawPoint();
+      }
+
+      function del() {
+        dataset.pop();
+        drawPoint();
+      }
+    </script>
+  </body>
+</html>

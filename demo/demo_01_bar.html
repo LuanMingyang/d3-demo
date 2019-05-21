@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Bar</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <div>
+      <button type="button" onclick="sort()">排序</button>
+      <button type="button" onclick="add()">增加数据</button>
+      <button type="button" onclick="del()">删除数据</button>
+    </div>
+    <script>
+      const dataset = [50, 43, 120, 87, 99, 167, 142];
+
+      const svgWidth = 500;
+      const svgHeight = 500;
+      const padding = {
+        top: 20,
+        right: 20,
+        bottom: 20,
+        left: 20
+      };
+      const rectStep = 35;
+      const rectWidth = 30;
+
+      // 创建画布
+      // 返回当前选择集的方法前设置 4 个空格缩进，返回新的选择集的则使用 2 个空格缩进
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 矩形
+      const gRect = svg.append('g').attr('fill', 'steelblue');
+
+      // 文字
+      const gText = svg.append('g')
+          .attr('fill', 'white')
+          .attr('font-size', '14px')
+          .attr('text-anchor', 'middle');
+      
+
+      draw();
+
+      function draw() {
+        // 绘制矩形
+        const rect = gRect.selectAll('rect').data(dataset);
+        rect.exit().remove();
+        rect.enter().append('rect')
+          .merge(rect)
+            .attr('x', (d, i) => padding.left + i * rectStep)
+            .attr('y', d => svgHeight - padding.bottom - d)
+            .attr('width', rectWidth)
+            .attr('height', d => d);
+
+        // 绘制文字
+        const text = gText.selectAll('text').data(dataset);
+        text.exit().remove();
+        text.enter().append('text')
+          .merge(text)
+            .attr('x', (d, i) => padding.left + i * rectStep)
+            .attr('y', d => svgHeight - padding.bottom - d)
+            .attr('dx', rectWidth / 2)
+            .attr('dy', '1em')
+            .text(d => d);
+      }
+
+      function sort() {
+        dataset.sort(d3.ascending);
+        draw();
+      }
+
+      function add() {
+        dataset.push(Math.floor(Math.random() * 100 + 50));
+        draw();
+      }
+
+      function del() {
+        dataset.shift(Math.floor(Math.random() * dataset.length), 1);
+        draw();
+      }
+    </script>
+  </body>
+</html>

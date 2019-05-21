@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <canvas width="800" height="500"></canvas>
+    <script>
+      const canvas = document.querySelector('canvas');
+      const width = canvas.width;
+      const height = canvas.height;
+      const ctx = canvas.getContext('2d');
+
+      // 颜色
+      const colorScale = d3.scaleLinear()
+          .domain([0, 1])
+          .range([0.5, 1]);
+      const color = value => d3.interpolatePuBu(colorScale(value));
+
+      // 创建经纬线网格生成器
+      const graticule = d3.geoGraticule()
+          .extent([[-71, 16], [137, 54]]) // 设置网格范围在经度71°~137°，纬度16°~54°
+          .step([5, 5]); // 经度和纬度间隔都为5°
+
+      // 创建投影
+      const projection = d3.geoMercator()
+          .center([107, 31])
+          .scale(600)
+          .translate([width / 2, height / 1.5]);
+      
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection)
+          .context(ctx); // 指定渲染目标为canvas
+      
+      let features = [];
+
+      // 读取GeoJSON格式数据
+      d3.json('../../geo_data/china.geojson').then(data => {
+        features = data.features;
+        render();
+      }).catch(err => console.error(err));
+
+
+      
+      // 方法一：通过修改投影实现缩放平移
+      // 保存初始平移量和缩放量
+      const initTran = projection.translate();
+      const initScale = projection.scale();
+
+      // 创建一个缩放行为
+      const zoom = d3.zoom()
+          .scaleExtent([0.5, 10]) // 设置缩放范围
+          .on('zoom', d => {
+            // 更新投影函数平移量
+            projection.translate([
+              initTran[0] + d3.event.transform.x,
+              initTran[1] + d3.event.transform.y
+            ]);
+            // 更新投影函数缩放量
+            projection.scale(initScale * d3.event.transform.k);
+            
+            // 重绘网格和地图
+            render();
+          });
+
+      d3.select('canvas')
+        .call(zoom);
+
+      function render() {
+        ctx.save();
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = 'gray';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        geoPath(graticule());
+        ctx.stroke();
+
+        features.forEach((d, i) => {
+          ctx.fillStyle = color(i % 10 / 10);
+          ctx.beginPath();
+          geoPath(d);
+          ctx.fill();
+        });
+
+        ctx.restore();
+      }
+
+
+      // 方法二：通过canvas实现缩放平移
+      // let transform = d3.zoomIdentity;
+
+      // // 创建一个缩放行为
+      // const zoom = d3.zoom()
+      //     .scaleExtent([0.5, 10]) // 设置缩放范围
+      //     .on('zoom', d => {
+      //       transform = d3.event.transform;
+      //       // 重绘网格和地图
+      //       render();
+      //     });
+
+      // d3.select('canvas')
+      //   .call(zoom);
+
+      // function render() {
+      //   ctx.save();
+      //   ctx.fillStyle = 'white';
+      //   ctx.fillRect(0, 0, width, height);
+
+      //   // 地图里应先缩放后平移（实际执行顺序与书写顺序相反，因此先写平移后写缩放）
+      //   ctx.translate(transform.x, transform.y);
+      //   ctx.scale(transform.k, transform.k);
+
+      //   ctx.strokeStyle = 'gray';
+      //   ctx.lineWidth = 1;
+      //   ctx.beginPath();
+      //   geoPath(graticule());
+      //   ctx.stroke();
+
+      //   features.forEach((d, i) => {
+      //     ctx.fillStyle = color(i % 10 / 10);
+      //     ctx.beginPath();
+      //     geoPath(d);
+      //     ctx.fill();
+      //   });
+
+      //   ctx.restore();
+      // }
+    </script>
+  </body>
+</html>

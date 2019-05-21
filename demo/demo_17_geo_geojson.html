@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const svgWidth = 800;
+      const svgHeight = 500;
+
+      const color = d3.interpolateGnBu;
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 创建投影
+      const projection = d3.geoMercator()
+          .center([107, 31])
+          .scale(600)
+          .translate([svgWidth / 2, svgHeight / 2 + svgHeight / 6]);
+      
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection);
+
+      // 读取GeoJSON格式数据
+      d3.json('../geo_data/china.geojson').then(data => {
+
+        // 合并绘制
+        // svg.append('path')
+        //     .datum({ type: 'FeatureCollection', data.features })
+        //     .attr('d', geoPath);
+
+        // 多个路径绘制
+        svg.append('g')
+          .selectAll('path')
+          .data(data.features)
+          .enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill', (d, i) => color(i % 10 / 10))
+            .on('click', d => {
+              const area = geoPath.area(d);          // 面积
+              const centroid = geoPath.centroid(d);  // 中心
+              const bounds = geoPath.bounds(d);      // 边界框
+              const measure = geoPath.measure(d);    // 长度
+
+              const g = svg.append('g');
+
+              g.append('rect')
+                  .attr('x', bounds[0][0])
+                  .attr('y', bounds[0][1])
+                  .attr('width', bounds[1][0] - bounds[0][0])
+                  .attr('height', bounds[1][1] - bounds[0][1])
+                  .attr('fill', 'none')
+                  .attr('stroke', 'black');
+
+              g.append('circle')
+                  .attr('cx', centroid[0])
+                  .attr('cy', centroid[1])
+                  .attr('r', 5)
+                  .attr('fill', 'black');
+
+            });
+      }).catch(err => console.error(err));
+      
+    </script>
+  </body>
+</html>

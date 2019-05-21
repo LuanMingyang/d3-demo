@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Geo</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      // 北京到华盛顿 线路1
+      const bjToWashington1 = {
+        type: 'LineString',
+        coordinates: [[116.3, 39.9], [-77.0, 38.9]]
+      };
+
+      // 北京到华盛顿 线路2
+      const bjToWashington2 = {
+        type: 'LineString',
+        coordinates: [
+          [116.3, 39.9], [146.4, 39.7], [176.4, 39.5],
+          [-150.4, 39.3], [-110.4, 39.1], [-77.0, 38.9]]
+      };
+
+      const svgWidth = 800;
+      const svgHeight = 500;
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 创建经纬线网格生成器
+      const eps = 1e-4;
+      const graticule = d3.geoGraticule()
+          .extent([[-180, -90], [180 + eps, 90]]) // 加一个极小值，防止网格没有边界线
+          .step([10, 10]);
+
+      // 创建投影
+      const projection = d3.geoOrthographic()
+          .scale(180)
+          .rotate([180, -45, 0])
+          .clipAngle(90)
+          .translate([svgWidth / 2, svgHeight / 2]);
+      
+      // 创建地理路径生成器
+      const geoPath = d3.geoPath()
+          .projection(projection);
+
+      // 绘制网格
+      const grid = svg.append('g')
+        .append('path')
+          .datum(graticule()) // 生成并绑定网格数据
+          .attr('d', geoPath)
+          .attr('fill', 'none')
+          .attr('stroke', 'gray');
+
+      
+
+      // 读取GeoJSON格式数据
+      d3.json('../geo_data/global_simplify.geojson').then(data => {
+        
+        // 绘制地图
+        const map = svg.append('g')
+          .selectAll('path')
+          .data(data.features)
+          .enter().append('path')
+            .attr('d', geoPath)
+            .attr('fill', 'gray');
+
+        // 绘制路线
+        svg.append('path')
+            .attr('d', geoPath(bjToWashington1))
+            .attr('marker-start', 'url(#point)')
+            .attr('marker-end', 'url(#arrow)')
+            .attr('fill', 'none')
+            .attr('stroke', 'black')
+            .attr('stroke-width', '2');
+
+        svg.append('path')
+            .attr('d', geoPath(bjToWashington2))
+            .attr('marker-start', 'url(#point)')
+            .attr('marker-end', 'url(#arrow)')
+            .attr('fill', 'none')
+            .attr('stroke', 'black')
+            .attr('stroke-width', '2');
+
+      }).catch(err => console.error(err));
+
+      // 箭头
+      svg.append('defs')
+        .append('marker')
+          .attr('id', 'arrow')
+          .attr('markerUnits', 'strokeWidth')
+          .attr('markerWidth', '12')
+          .attr('markerHeight', '12')
+          .attr('viewBox', '0 0 12 12')
+          .attr('refX', '6')
+          .attr('refY', '6')
+          .attr('orient', 'auto')
+        .append('path')
+          .attr('d', 'M2,2 L10,6 L2,10 L6,6 L2,2')
+          .attr('fill', '#000');
+
+      // 圆点
+      svg.append('defs')
+        .append('marker')
+          .attr('id', 'point')
+          .attr('markerUnits', 'strokeWidth')
+          .attr('markerWidth', '12')
+          .attr('markerHeight', '12')
+          .attr('viewBox', '0 0 12 12')
+          .attr('refX', '6')
+          .attr('refY', '6')
+          .attr('orient', 'auto')
+        .append('circle')
+          .attr('cx', 6)
+          .attr('cy', 6)
+          .attr('r', 2)
+          .attr('fill', '#000');
+      
+    </script>
+  </body>
+</html>

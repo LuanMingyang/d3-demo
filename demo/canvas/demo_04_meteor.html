@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Meteor</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <canvas width="500" height="500"></canvas>
+    <script>
+      const canvas = document.querySelector('canvas');
+      const width = canvas.width;
+      const height = canvas.height;
+      const ctx = canvas.getContext('2d');
+
+      const ball = {
+        angle: 0,
+
+        render: function () {
+          ctx.fillStyle = 'steelblue';
+          ctx.beginPath();
+          ctx.arc(300 + 100 * Math.cos(this.angle), 300 + 100 * Math.sin(this.angle), 10, 0, Math.PI * 2);
+          ctx.fill();
+        },
+
+        update: function () {
+          this.angle += 0.05;
+        }
+      };
+
+      setInterval(() => {
+        // 刷新画布背景
+        // 没有用白色全部覆盖，使用透明度为0.1的白色，使上一帧画面部分被保留
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.fillRect(0, 0, width, height);
+
+        ball.render();
+
+        ball.update();
+      }, 20);
+      
+    </script>
+  </body>
+</html>

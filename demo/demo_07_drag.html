@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Drag</title>
+    <script type="text/javascript" src="http://d3js.org/d3.v5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      const dataset = [
+        { cx: 150, cy: 200, r: 25, fill: 'black' },
+        { cx: 250, cy: 200, r: 25, fill: 'blue' }
+      ];
+
+      const svgWidth = 500;
+      const svgHeight = 500;
+
+      // 创建画布
+      const svg = d3.select('body').append('svg')
+          .attr('width', svgWidth)
+          .attr('height', svgHeight);
+
+      // 创建一个拖拽行为
+      const drag = d3.drag()
+          .on('start', () => {
+            console.log('drag start');
+          })
+          .on('drag', function (d) {
+            d3.select(this)
+              .attr('cx', d.cx = d3.event.x)
+              .attr('cy', d.cy = d3.event.y);
+          })
+          .on('end', () => {
+            console.log('drag end');
+          });
+
+      // 绘制圆形
+      svg.selectAll('circle')
+        .data(dataset)
+        .enter().append('circle')
+          .attr('cx', d => d.cx)
+          .attr('cy', d => d.cy)
+          .attr('r', d => d.r)
+          .attr('fill', d => d.fill)
+          .call(drag);
+    </script>
+  </body>
+</html>
